@@ -29,6 +29,10 @@ class Avatar {
         this.switchingSidesFrames = 0;
         this.isMovingRight = true;
         this.message = null;
+        this.messageSize = 0.1;
+        this.messageTimeElapsed = 0;
+        this.maxMessageTimeElapsed = 100;
+        this.messageShrinking = false;
         this.isFullyScaled = false;
     }
 
@@ -42,7 +46,6 @@ class Avatar {
                 smallImage.resize(this.width, this.height);
                 this.images.push(smallImage);
                 if (i === imagesLength) {
-                    console.log("this is getting called");
                     this.loadingImagesFinished = true;
                 }
             })
@@ -59,7 +62,6 @@ class Avatar {
         if (!this.isFullyScaled) {
             this.scaleSize += 0.1;
             if (this.scaleSize === 1) {
-                console.log("this is being called");
                 this.isFullyScaled = true;
             }
             else {
@@ -92,9 +94,26 @@ class Avatar {
         }
         
         if (this.message) {
-            rect(this.x + avatarWidth / 2 - messageBoxSize.width / 2, this.y - messageBoxSize.height, messageBoxSize.width, messageBoxSize.height - usernameTextSize, 10 );
-            textSize(messageTextSize);
-            text(this.message, this.x + avatarWidth / 2 - messageBoxSize.width / 2 + textPadding, this.y - messageBoxSize.height + textPadding, messageBoxSize.width - textPadding, messageBoxSize.height - textPadding);
+            let relativeBoxSize = { width: messageBoxSize.width * this.messageSize, height: messageBoxSize.height * this.messageSize };
+            rect(this.x + avatarWidth / 2 - relativeBoxSize.width / 2, this.y - relativeBoxSize.height, relativeBoxSize.width, relativeBoxSize.height - usernameTextSize, 10 );
+            textSize(messageTextSize * this.messageSize);
+            text(this.message, this.x + avatarWidth / 2 - relativeBoxSize.width / 2 + textPadding, this.y - relativeBoxSize.height + textPadding, relativeBoxSize.width - textPadding, relativeBoxSize.height - textPadding);
+
+            if (this.messageSize < 1 && !this.messageShrinking) {
+                this.messageSize += 0.1;
+            }
+
+            if (this.messageTimeElapsed > this.maxMessageTimeElapsed) {
+                this.messageShrinking = true;
+                this.messageSize -= 0.1;
+                if (this.messageSize < 0.1) {
+                    this.message = null;
+                    this.messageTimeElapsed = 0;
+                    this.messageShrinking = false;
+                }
+            } else {
+                this.messageTimeElapsed += 1;
+            }
         }
 
         textSize(this.tagSize);
@@ -134,7 +153,7 @@ function getRandomInt(min, max) {
 }
 
 function createNewAvatar(name) {
-    avatars.push(new Avatar(avatarNames[generateRandomNumber(0, avatarNames.length)], name));
+    avatars.push(new Avatar(avatarNames[getRandomInt(0, avatarNames.length)], name));
 }
 
 client.connect();
@@ -149,10 +168,6 @@ client.on('message', (channel, tags, message, self) => {
 
     createNewAvatar(tags['display-name']);
 })
-
-function preload() {
-    createNewAvatar('KodingDesires');
-}
 
 function setup() {
   createCanvas(window.innerWidth, window.innerHeight);
